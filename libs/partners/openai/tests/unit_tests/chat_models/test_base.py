@@ -398,7 +398,7 @@ async def test_deepseek_acompletion_with_reasoning(
     llm_name = "deepseek-chat"
     llm = ChatOpenAI(model=llm_name)
 
-    async def async_mock_create(*args, **kwargs):
+    async def async_mock_create(*args: Any, **kwargs: Any) -> dict:
         return mock_deepseek_completion_with_reasoning
 
     with patch.object(llm.async_client, "create", side_effect=async_mock_create):
@@ -488,51 +488,18 @@ def test_deepseek_stream(mock_deepseek_completion: list) -> None:
 
 
 DEEPSEEK_STREAM_DATA_WITH_REASONING = """
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"To 
-compare ","role":"assistant","reasoning":"Okay, so I need "},"finish_reason":null,
-"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":
-"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.11 
-and 9.8, ","role":"assistant","reasoning":"to figure out "},"finish_reason":null,
-"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":
-"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"we 
-need to look at ","role":"assistant","reasoning":"whether 9.11 is greater "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"the 
-decimal places. ","role":"assistant","reasoning":"than 9.8. Looking at "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"In 
-the tenths place, ","role":"assistant","reasoning":"the tenths place, "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 
-has 8 tenths ","role":"assistant","reasoning":"9.8 has 8 tenths while "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"while 
-9.11 has 1 tenth. ","role":"assistant","reasoning":"9.11 has only 1 tenth. "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"Since 
-8 is greater than 1, ","role":"assistant","reasoning":"Since 8 tenths is greater "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 
-is the larger number. ","role":"assistant","reasoning":"than 1 tenth, 9.8 is "},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":
-"Therefore, 9.8 > 9.11.","role":"assistant","reasoning":"greater than 9.11."},
-"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
-"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
-{"choices":[{"delta":{"content":"","role":null},"finish_reason":"stop","index":0,
-"logprobs":null}],"created":1721630271,"id":"d3610c24e6b42518a7883ea57c3ea2c3",
-"model":"deepseek-chat","object":"chat.completion.chunk","system_fingerprint":
-"fp_7e0991cad4","usage":{"completion_tokens":15,"prompt_tokens":11,"total_tokens":26}}
-[DONE]"""
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"To compare ","role":"assistant","reasoning":"Okay, so I need "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.11 and 9.8, ","role":"assistant","reasoning":"to figure out "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"we need to look at ","role":"assistant","reasoning":"whether 9.11 is greater "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"the decimal places. ","role":"assistant","reasoning":"than 9.8. Looking at "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"In the tenths place, ","role":"assistant","reasoning":"the tenths place, "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 has 8 tenths ","role":"assistant","reasoning":"9.8 has 8 tenths while "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"while 9.11 has 1 tenth. ","role":"assistant","reasoning":"9.11 has only 1 tenth. "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"Since 8 is greater than 1, ","role":"assistant","reasoning":"Since 8 tenths is greater "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 is the larger number. ","role":"assistant","reasoning":"than 1 tenth, 9.8 is "},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"Therefore, 9.8 > 9.11.","role":"assistant","reasoning":"greater than 9.11."},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"choices":[{"delta":{"content":"","role":null},"finish_reason":"stop","index":0,"logprobs":null}],"created":1721630271,"id":"d3610c24e6b42518a7883ea57c3ea2c3","model":"deepseek-chat","object":"chat.completion.chunk","system_fingerprint":"fp_7e0991cad4","usage":{"completion_tokens":15,"prompt_tokens":11,"total_tokens":26}}
+[DONE]"""  # noqa: E501
 
 
 @pytest.fixture
@@ -540,9 +507,8 @@ def mock_deepseek_stream_with_reasoning() -> List[Dict]:
     list_chunk_data = DEEPSEEK_STREAM_DATA_WITH_REASONING.split("\n")
     result_list = []
     for msg in list_chunk_data:
-        if msg != "[DONE]":
+        if msg and msg != "[DONE]":  # Check that msg is not empty
             result_list.append(json.loads(msg))
-
     return result_list
 
 
