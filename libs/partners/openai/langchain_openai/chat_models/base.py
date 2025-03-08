@@ -304,6 +304,9 @@ def _convert_delta_to_message_chunk(
     role = cast(str, _dict.get("role"))
     content = cast(str, _dict.get("content") or "")
     additional_kwargs: Dict = {}
+    if "reasoning" in _dict:
+        additional_kwargs["reasoning"] = _dict["reasoning"]
+
     if _dict.get("function_call"):
         function_call = dict(_dict["function_call"])
         if "name" in function_call and function_call["name"] is None:

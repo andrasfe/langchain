@@ -341,6 +341,73 @@ def test_glm4_stream(mock_glm4_completion: list) -> None:
     assert usage_metadata["total_tokens"] == usage_chunk["usage"]["total_tokens"]
 
 
+DEEPSEEK_COMPLETION_WITH_REASONING = {
+    "id": "gen-1741465775-tQWLgrLqhP2uBQGSRBhn",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": None,
+            "message": {
+                "content": "To determine whether 9.11 or 9.8 is greater...",
+                "role": "assistant",
+                "reasoning": "Okay, so I need to figure out whether 9.11...",
+            },
+            "native_finish_reason": "stop",
+        }
+    ],
+    "created": 1741465775,
+    "model": "deepseek/deepseek-r1",
+    "object": "chat.completion",
+    "service_tier": None,
+    "system_fingerprint": "fastcoe",
+    "usage": {
+        "completion_tokens": 1067,
+        "prompt_tokens": 30,
+        "total_tokens": 1097,
+        "completion_tokens_details": None,
+        "prompt_tokens_details": None,
+    },
+    "provider": "SambaNova",
+}
+
+
+@pytest.fixture
+def mock_deepseek_completion_with_reasoning() -> dict:
+    return DEEPSEEK_COMPLETION_WITH_REASONING
+
+
+def test_deepseek_completion_with_reasoning(
+    mock_deepseek_completion_with_reasoning: dict,
+) -> None:
+    llm_name = "deepseek-chat"
+    llm = ChatOpenAI(model=llm_name)
+
+    with patch.object(
+        llm.client, "create", return_value=mock_deepseek_completion_with_reasoning
+    ):
+        response = llm.invoke("Compare 9.11 and 9.8")
+        assert isinstance(response, AIMessage)
+        assert "reasoning" in response.additional_kwargs
+        assert isinstance(response.additional_kwargs["reasoning"], str)
+
+
+async def test_deepseek_acompletion_with_reasoning(
+    mock_deepseek_completion_with_reasoning: dict,
+) -> None:
+    llm_name = "deepseek-chat"
+    llm = ChatOpenAI(model=llm_name)
+
+    async def async_mock_create(*args, **kwargs):
+        return mock_deepseek_completion_with_reasoning
+
+    with patch.object(llm.async_client, "create", side_effect=async_mock_create):
+        response = await llm.ainvoke("Compare 9.11 and 9.8")
+        assert isinstance(response, AIMessage)
+        assert "reasoning" in response.additional_kwargs
+        assert isinstance(response.additional_kwargs["reasoning"], str)
+
+
 DEEPSEEK_STREAM_DATA = """{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"","role":"assistant"},"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
 {"choices":[{"delta":{"content":"我是","role":"assistant"},"finish_reason":null,"index":0,"logprobs":null}],"created":1721630271,"id":"d3610c24e6b42518a7883ea57c3ea2c3","model":"deepseek-chat","object":"chat.completion.chunk","system_fingerprint":"fp_7e0991cad4","usage":null}
 {"choices":[{"delta":{"content":"Deep","role":"assistant"},"finish_reason":null,"index":0,"logprobs":null}],"created":1721630271,"id":"d3610c24e6b42518a7883ea57c3ea2c3","model":"deepseek-chat","object":"chat.completion.chunk","system_fingerprint":"fp_7e0991cad4","usage":null}
@@ -415,6 +482,125 @@ def test_deepseek_stream(mock_deepseek_completion: list) -> None:
 
     assert usage_metadata is not None
 
+    assert usage_metadata["input_tokens"] == usage_chunk["usage"]["prompt_tokens"]
+    assert usage_metadata["output_tokens"] == usage_chunk["usage"]["completion_tokens"]
+    assert usage_metadata["total_tokens"] == usage_chunk["usage"]["total_tokens"]
+
+
+DEEPSEEK_STREAM_DATA_WITH_REASONING = """
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"To 
+compare ","role":"assistant","reasoning":"Okay, so I need "},"finish_reason":null,
+"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":
+"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.11 
+and 9.8, ","role":"assistant","reasoning":"to figure out "},"finish_reason":null,
+"logprobs":null}],"created":1721630271,"model":"deepseek-chat","system_fingerprint":
+"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"we 
+need to look at ","role":"assistant","reasoning":"whether 9.11 is greater "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"the 
+decimal places. ","role":"assistant","reasoning":"than 9.8. Looking at "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"In 
+the tenths place, ","role":"assistant","reasoning":"the tenths place, "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 
+has 8 tenths ","role":"assistant","reasoning":"9.8 has 8 tenths while "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"while 
+9.11 has 1 tenth. ","role":"assistant","reasoning":"9.11 has only 1 tenth. "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"Since 
+8 is greater than 1, ","role":"assistant","reasoning":"Since 8 tenths is greater "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":"9.8 
+is the larger number. ","role":"assistant","reasoning":"than 1 tenth, 9.8 is "},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"id":"d3610c24e6b42518a7883ea57c3ea2c3","choices":[{"index":0,"delta":{"content":
+"Therefore, 9.8 > 9.11.","role":"assistant","reasoning":"greater than 9.11."},
+"finish_reason":null,"logprobs":null}],"created":1721630271,"model":"deepseek-chat",
+"system_fingerprint":"fp_7e0991cad4","object":"chat.completion.chunk","usage":null}
+{"choices":[{"delta":{"content":"","role":null},"finish_reason":"stop","index":0,
+"logprobs":null}],"created":1721630271,"id":"d3610c24e6b42518a7883ea57c3ea2c3",
+"model":"deepseek-chat","object":"chat.completion.chunk","system_fingerprint":
+"fp_7e0991cad4","usage":{"completion_tokens":15,"prompt_tokens":11,"total_tokens":26}}
+[DONE]"""
+
+
+@pytest.fixture
+def mock_deepseek_stream_with_reasoning() -> List[Dict]:
+    list_chunk_data = DEEPSEEK_STREAM_DATA_WITH_REASONING.split("\n")
+    result_list = []
+    for msg in list_chunk_data:
+        if msg != "[DONE]":
+            result_list.append(json.loads(msg))
+
+    return result_list
+
+
+async def test_deepseek_astream_with_reasoning(
+    mock_deepseek_stream_with_reasoning: list,
+) -> None:
+    llm_name = "deepseek-chat"
+    llm = ChatOpenAI(model=llm_name, stream_usage=True)
+    mock_client = AsyncMock()
+
+    async def mock_create(*args: Any, **kwargs: Any) -> MockAsyncContextManager:
+        return MockAsyncContextManager(mock_deepseek_stream_with_reasoning)
+
+    mock_client.create = mock_create
+    usage_chunk = mock_deepseek_stream_with_reasoning[-1]
+    usage_metadata: Optional[UsageMetadata] = None
+    with patch.object(llm, "async_client", mock_client):
+        async for chunk in llm.astream("Compare 9.11 and 9.8"):
+            assert isinstance(chunk, AIMessageChunk)
+            # Verify reasoning is present in the raw response
+            if chunk.response_metadata.get("choices"):
+                delta = chunk.response_metadata["choices"][0].get("delta", {})
+                if "reasoning" in delta:
+                    assert isinstance(delta["reasoning"], str)
+            if chunk.usage_metadata is not None:
+                usage_metadata = chunk.usage_metadata
+
+    assert usage_metadata is not None
+    assert usage_metadata["input_tokens"] == usage_chunk["usage"]["prompt_tokens"]
+    assert usage_metadata["output_tokens"] == usage_chunk["usage"]["completion_tokens"]
+    assert usage_metadata["total_tokens"] == usage_chunk["usage"]["total_tokens"]
+
+
+def test_deepseek_stream_with_reasoning(
+    mock_deepseek_stream_with_reasoning: list,
+) -> None:
+    llm_name = "deepseek-chat"
+    llm = ChatOpenAI(model=llm_name, stream_usage=True)
+    mock_client = MagicMock()
+
+    def mock_create(*args: Any, **kwargs: Any) -> MockSyncContextManager:
+        return MockSyncContextManager(mock_deepseek_stream_with_reasoning)
+
+    mock_client.create = mock_create
+    usage_chunk = mock_deepseek_stream_with_reasoning[-1]
+    usage_metadata: Optional[UsageMetadata] = None
+    with patch.object(llm, "client", mock_client):
+        for chunk in llm.stream("Compare 9.11 and 9.8"):
+            assert isinstance(chunk, AIMessageChunk)
+            # Verify reasoning is present in the raw response
+            if chunk.response_metadata.get("choices"):
+                delta = chunk.response_metadata["choices"][0].get("delta", {})
+                if "reasoning" in delta:
+                    assert isinstance(delta["reasoning"], str)
+            if chunk.usage_metadata is not None:
+                usage_metadata = chunk.usage_metadata
+
+    assert usage_metadata is not None
     assert usage_metadata["input_tokens"] == usage_chunk["usage"]["prompt_tokens"]
     assert usage_metadata["output_tokens"] == usage_chunk["usage"]["completion_tokens"]
     assert usage_metadata["total_tokens"] == usage_chunk["usage"]["total_tokens"]
