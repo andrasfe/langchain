@@ -18,6 +18,7 @@ from langchain_anthropic.chat_models import (
     _create_usage_metadata,
     _format_image,
     _format_messages,
+    _is_openai_compatible_service,
     _merge_messages,
     convert_to_anthropic_tool,
 )
@@ -994,3 +995,186 @@ def test_usage_metadata_standardization() -> None:
     assert result["input_tokens"] == 0
     assert result["output_tokens"] == 0
     assert result["total_tokens"] == 0
+
+
+@pytest.mark.requires("anthropic")
+def test_openai_compatible_service_detection() -> None:
+    """Test detection of OpenAI-compatible services."""
+    # Test OpenAI-compatible services (should be detected)
+    openai_compatible_urls = [
+        "https://openrouter.ai/api",
+        "https://api.together.xyz",
+        "https://api.deepinfra.com",
+        "https://api.openai.com",
+        "https://api.groq.com",
+        "https://api.perplexity.ai",
+    ]
+
+    for url in openai_compatible_urls:
+        assert _is_openai_compatible_service(
+            url
+        ), f"{url} should be detected as OpenAI-compatible"
+
+    # Test case insensitive detection
+    assert _is_openai_compatible_service("https://OpenRouter.AI/api")
+    assert _is_openai_compatible_service("https://API.TOGETHER.XYZ")
+
+    # Test Anthropic URLs (should NOT be detected)
+    anthropic_urls = [
+        "https://api.anthropic.com",
+        "https://api.anthropic.com/",
+        "",
+    ]
+
+    for url in anthropic_urls:
+        assert not _is_openai_compatible_service(
+            url
+        ), f"{url} should NOT be detected as OpenAI-compatible"
+
+    # Test None case separately
+    assert not _is_openai_compatible_service(
+        ""
+    ), "None should NOT be detected as OpenAI-compatible"
+
+    # Test custom/proxy URLs (should NOT be detected)
+    custom_urls = [
+        "https://my-proxy.example.com",
+        "http://localhost:8080",
+        "https://internal-gateway.company.com",
+    ]
+
+    for url in custom_urls:
+        assert not _is_openai_compatible_service(
+            url
+        ), f"{url} should NOT be detected as OpenAI-compatible"
+
+
+@pytest.mark.requires("anthropic")
+def test_openrouter_incompatibility_error() -> None:
+    """Test that ChatAnthropic raises clear error for OpenAI-compatible services."""
+    openai_compatible_services = [
+        "https://openrouter.ai/api",
+        "https://api.together.xyz",
+        "https://api.deepinfra.com",
+        "https://api.openai.com",
+        "https://api.groq.com",
+        "https://api.perplexity.ai",
+    ]
+
+    for base_url in openai_compatible_services:
+        with pytest.raises(ValueError) as exc_info:
+            ChatAnthropic(
+                model="claude-3-sonnet",
+                api_key="test-key",
+                base_url=base_url,
+            )
+
+        error_message = str(exc_info.value)
+
+        # Verify the error message contains key information
+        assert "ChatAnthropic is incompatible with OpenAI-compatible services" in (
+            error_message
+        )
+        assert base_url in error_message
+        assert "/v1/chat/completions" in error_message
+        assert "/v1/messages" in error_message
+        assert "ChatOpenAI" in error_message
+        assert "anthropic/claude" in error_message
+
+
+@pytest.mark.requires("anthropic")
+def test_anthropic_urls_allowed() -> None:
+    """Test that valid Anthropic URLs are allowed."""
+    valid_urls = [
+        "https://api.anthropic.com",
+        "https://api.anthropic.com/",
+    ]
+
+    for base_url in valid_urls:
+        # This should NOT raise an incompatibility error
+        try:
+            ChatAnthropic(
+                model="claude-3-sonnet",
+                api_key="test-key",
+                base_url=base_url,
+            )
+        except ValueError as e:
+            if "incompatible with OpenAI-compatible services" in str(e):
+                pytest.fail(
+                    f"Valid Anthropic URL {base_url} was incorrectly rejected: {e}"
+                )
+            # Other validation errors are fine
+
+
+@pytest.mark.requires("anthropic")
+def test_custom_proxy_urls_allowed() -> None:
+    """Test that custom proxy URLs are allowed."""
+    custom_urls = [
+        "https://my-proxy.example.com",
+        "http://localhost:8080",
+        "https://internal-gateway.company.com/anthropic",
+    ]
+
+    for base_url in custom_urls:
+        # This should NOT raise an incompatibility error
+        try:
+            ChatAnthropic(
+                model="claude-3-sonnet",
+                api_key="test-key",
+                base_url=base_url,
+            )
+        except ValueError as e:
+            if "incompatible with OpenAI-compatible services" in str(e):
+                pytest.fail(f"Custom URL {base_url} was incorrectly rejected: {e}")
+            # Other validation errors are fine
+
+
+@pytest.mark.requires("anthropic")
+def test_openrouter_error_message_helpful() -> None:
+    """Test that the error message for OpenRouter provides helpful guidance."""
+    with pytest.raises(ValueError) as exc_info:
+        ChatAnthropic(
+            model="claude-3-7-sonnet-20250219",
+            api_key="test-key",
+            base_url="https://openrouter.ai/api",
+        )
+
+    error_message = str(exc_info.value)
+
+    # Check that the error message contains helpful guidance
+    required_content = [
+        "ChatAnthropic is incompatible with OpenAI-compatible services",
+        "OpenAI API format (/v1/chat/completions)",
+        "Anthropic's native API format (/v1/messages)",
+        "use ChatOpenAI instead",
+        "from langchain_openai import ChatOpenAI",
+        "base_url='https://openrouter.ai/api'",
+        "model='anthropic/claude-3-sonnet'",
+    ]
+
+    for content in required_content:
+        assert content in error_message, f"Error message missing: {content}"
+
+
+@pytest.mark.requires("anthropic")
+def test_original_bug_scenario_fixed() -> None:
+    """Test that the exact scenario from issue #31325 now gives a clear error."""
+    # This is the exact code from issue #31325 that was failing with HTTP 405
+    with pytest.raises(ValueError) as exc_info:
+        ChatAnthropic(
+            model="claude-3-7-sonnet-20250219",
+            temperature=0,
+            max_tokens=1024,
+            timeout=None,
+            max_retries=2,
+            api_key="fake-api-key",
+            base_url="https://openrouter.ai/api",
+        )
+
+    # Verify we get a helpful error instead of the confusing 405 error
+    error_message = str(exc_info.value)
+    assert "ChatAnthropic is incompatible with OpenAI-compatible services" in (
+        error_message
+    )
+    assert "https://openrouter.ai/api" in error_message
+    assert "ChatOpenAI" in error_message

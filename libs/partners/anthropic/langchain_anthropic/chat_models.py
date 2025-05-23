@@ -104,6 +104,26 @@ def _is_builtin_tool(tool: Any) -> bool:
     return any(tool_type.startswith(prefix) for prefix in _builtin_tool_prefixes)
 
 
+def _is_openai_compatible_service(base_url: str) -> bool:
+    """Check if base_url points to OpenAI-compatible service incompatible with SDK."""
+    if not base_url:
+        return False
+
+    base_url_lower = base_url.lower()
+
+    # Known OpenAI-compatible services that don't support Anthropic's /v1/messages
+    openai_compatible_services = [
+        "openrouter.ai",
+        "api.together.xyz",
+        "api.deepinfra.com",
+        "api.openai.com",
+        "api.groq.com",
+        "api.perplexity.ai",
+    ]
+
+    return any(service in base_url_lower for service in openai_compatible_services)
+
+
 def _format_image(url: str) -> dict:
     """
     Converts part["image_url"]["url"] strings (OpenAI format)
@@ -1056,6 +1076,24 @@ class ChatAnthropic(BaseChatModel):
     def build_extra(cls, values: dict) -> Any:
         all_required_field_names = get_pydantic_field_names(cls)
         values = _build_model_kwargs(values, all_required_field_names)
+
+        # Check for incompatible base_url before proceeding
+        base_url = values.get("base_url") or values.get("anthropic_api_url")
+        if base_url and _is_openai_compatible_service(base_url):
+            raise ValueError(
+                f"ChatAnthropic is incompatible with OpenAI-compatible services "
+                f"like '{base_url}'. These services use the OpenAI API format "
+                f"(/v1/chat/completions) while ChatAnthropic uses Anthropic's "
+                f"native API format (/v1/messages). To use Anthropic models "
+                f"with OpenAI-compatible services, use ChatOpenAI instead:\n\n"
+                f"from langchain_openai import ChatOpenAI\n"
+                f"llm = ChatOpenAI(\n"
+                f"    base_url='{base_url}',\n"
+                f"    api_key='your-api-key',\n"
+                f"    model='anthropic/claude-3-sonnet'  # or other claude model\n"
+                f")"
+            )
+
         return values
 
     @cached_property
